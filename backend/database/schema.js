@@ -4,14 +4,13 @@ const createTables = () => {
   return new Promise((resolve, reject) => {
     const tables = [
       // Table des postes/machines
-      `CREATE TABLE IF NOT EXISTS postes (
+      `CREATE TABLE IF NOT EXISTS stations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        numero_poste VARCHAR(50) UNIQUE NOT NULL,
-        nom VARCHAR(100) NOT NULL,
-        type VARCHAR(50) DEFAULT 'PC',
+        name VARCHAR(50) UNIQUE NOT NULL,
+        type VARCHAR(50) DEFAULT 'standard',
+        status VARCHAR(20) DEFAULT 'disponible',
+        hourly_rate DECIMAL(10,2) DEFAULT 1000.00,
         ip_address VARCHAR(50),
-        statut VARCHAR(20) DEFAULT 'disponible',
-        dernier_ping DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
@@ -19,24 +18,13 @@ const createTables = () => {
       // Table des clients
       `CREATE TABLE IF NOT EXISTS clients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom VARCHAR(100) NOT NULL,
-        prenom VARCHAR(100),
-        telephone VARCHAR(20),
+        name VARCHAR(100) NOT NULL,
+        phone VARCHAR(20),
         email VARCHAR(100),
-        type_client VARCHAR(20) DEFAULT 'occasionnel',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`,
-
-      // Table des tarifs
-      `CREATE TABLE IF NOT EXISTS tarifs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom VARCHAR(100) NOT NULL,
-        type VARCHAR(50) NOT NULL,
-        prix DECIMAL(10,2) NOT NULL,
-        duree_minutes INTEGER,
-        description TEXT,
-        actif BOOLEAN DEFAULT 1,
+        address TEXT,
+        type VARCHAR(20) DEFAULT 'occasionnel',
+        visit_count INTEGER DEFAULT 0,
+        total_spent DECIMAL(10,2) DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
@@ -44,42 +32,43 @@ const createTables = () => {
       // Table des sessions
       `CREATE TABLE IF NOT EXISTS sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        poste_id INTEGER NOT NULL,
+        station_id INTEGER NOT NULL,
         client_id INTEGER,
-        heure_debut DATETIME NOT NULL,
-        heure_fin DATETIME,
-        duree_minutes INTEGER,
-        tarif_id INTEGER,
-        montant_total DECIMAL(10,2) DEFAULT 0,
-        statut VARCHAR(20) DEFAULT 'en_cours',
+        start_time DATETIME NOT NULL,
+        end_time DATETIME,
+        duration_minutes INTEGER,
+        base_price DECIMAL(10,2) DEFAULT 0,
+        services_price DECIMAL(10,2) DEFAULT 0,
+        total_price DECIMAL(10,2) DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'active',
+        payment_status VARCHAR(20) DEFAULT 'pending',
         notes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (poste_id) REFERENCES postes(id),
-        FOREIGN KEY (client_id) REFERENCES clients(id),
-        FOREIGN KEY (tarif_id) REFERENCES tarifs(id)
+        FOREIGN KEY (station_id) REFERENCES stations(id),
+        FOREIGN KEY (client_id) REFERENCES clients(id)
       )`,
 
       // Table des services additionnels
       `CREATE TABLE IF NOT EXISTS services (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name VARCHAR(100) NOT NULL,
-        prix DECIMAL(10,2) NOT NULL,
-        categorie VARCHAR(50),
         description TEXT,
-        actif BOOLEAN DEFAULT 1,
+        price DECIMAL(10,2) NOT NULL,
+        category VARCHAR(50),
+        is_active BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
 
-      // Table des services commandés
+      // Table des services par session
       `CREATE TABLE IF NOT EXISTS session_services (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id INTEGER NOT NULL,
         service_id INTEGER NOT NULL,
-        quantite INTEGER DEFAULT 1,
-        prix_unitaire DECIMAL(10,2) NOT NULL,
-        montant_total DECIMAL(10,2) NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        unit_price DECIMAL(10,2) NOT NULL,
+        total_price DECIMAL(10,2) NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (session_id) REFERENCES sessions(id),
         FOREIGN KEY (service_id) REFERENCES services(id)
@@ -90,9 +79,9 @@ const createTables = () => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        nom VARCHAR(100),
+        name VARCHAR(100),
         role VARCHAR(20) DEFAULT 'admin',
-        actif BOOLEAN DEFAULT 1,
+        is_active BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`
@@ -100,7 +89,11 @@ const createTables = () => {
 
     db.serialize(() => {
       tables.forEach(tableSQL => {
-        db.run(tableSQL);
+        db.run(tableSQL, (err) => {
+          if (err) {
+            console.error('❌ Erreur création table:', err.message);
+          }
+        });
       });
       console.log('✅ Tables créées avec succès');
       resolve();

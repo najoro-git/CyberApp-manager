@@ -1,11 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Clock, FileText, Monitor, Zap } from 'lucide-react';
+import { LayoutDashboard, Users, Clock, FileText, Monitor, Zap, Package } from 'lucide-react';
 
 function Sidebar() {
   const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Tableau de Bord' },
+    { path: '/postes', icon: Monitor, label: 'Postes' },
     { path: '/sessions', icon: Clock, label: 'Sessions' },
     { path: '/clients', icon: Users, label: 'Clients' },
+    { path: '/services', icon: Package, label: 'Services' },
     { path: '/reports', icon: FileText, label: 'Rapports' },
   ];
 
