@@ -3,7 +3,7 @@ import { TrendingUp, DollarSign, Users, Clock, Download, Calendar, BarChart3, Fi
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { statsAPI } from '../../services/api';
 
-function Reports() {
+function stats() {
   const [period, setPeriod] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -390,4 +390,4 @@ function Reports() {
   );
 }
 
-export default Reports;
+export default stats;

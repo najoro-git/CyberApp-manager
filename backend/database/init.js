@@ -1,87 +1,153 @@
 const db = require('../config/database');
-const { createTables } = require('./schema');
-const bcrypt = require('bcryptjs');
 
-const initDatabase = async () => {
-  console.log('🔄 Initialisation de la base de données...');
-  
-  // Créer les tables
-  await createTables();
-  
-  // Attendre que les tables soient créées
-  setTimeout(async () => {
-    // Vérifier et insérer des postes par défaut
-    const stationCount = await db.getAsync('SELECT COUNT(*) as count FROM stations');
-    
-    if (stationCount.count === 0) {
-      const stations = [
-        { name: 'Poste 1', type: 'Gaming', hourly_rate: 1000, ip_address: '192.168.1.101' },
-        { name: 'Poste 2', type: 'Gaming', hourly_rate: 1000, ip_address: '192.168.1.102' },
-        { name: 'Poste 3', type: 'Standard', hourly_rate: 800, ip_address: '192.168.1.103' },
-        { name: 'Poste 4', type: 'Standard', hourly_rate: 800, ip_address: '192.168.1.104' },
-        { name: 'Poste 5', type: 'Gaming', hourly_rate: 1000, ip_address: '192.168.1.105' },
-        { name: 'PS5-1', type: 'Console', hourly_rate: 1500, ip_address: '192.168.1.201' },
-        { name: 'PS5-2', type: 'Console', hourly_rate: 1500, ip_address: '192.168.1.202' },
-        { name: 'Poste 8', type: 'Standard', hourly_rate: 800, ip_address: '192.168.1.108' },
-        { name: 'Poste 9', type: 'Gaming', hourly_rate: 1000, ip_address: '192.168.1.109' },
-        { name: 'Poste 10', type: 'Standard', hourly_rate: 800, ip_address: '192.168.1.110' },
-      ];
+const createTables = () => {
+  return new Promise((resolve, reject) => {
+    const tables = [
+      // Table des postes/machines - MISE À JOUR AVEC COLONNES PING
+      `CREATE TABLE IF NOT EXISTS stations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name VARCHAR(50) UNIQUE NOT NULL,
+        type VARCHAR(50) DEFAULT 'standard',
+        status VARCHAR(20) DEFAULT 'disponible',
+        hourly_rate DECIMAL(10,2) DEFAULT 1000.00,
+        ip_address VARCHAR(50),
+        connection_status VARCHAR(20) DEFAULT 'unknown',
+        last_ping_time DATETIME,
+        response_time INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
 
-      for (const station of stations) {
-        await db.runAsync(
-          'INSERT INTO stations (name, type, hourly_rate, ip_address) VALUES (?, ?, ?, ?)',
-          [station.name, station.type, station.hourly_rate, station.ip_address]
-        );
-      }
-      console.log('✅ Postes par défaut créés');
-    }
+      // Table des clients
+      `CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name VARCHAR(100) NOT NULL,
+        phone VARCHAR(20),
+        email VARCHAR(100),
+        address TEXT,
+        type VARCHAR(20) DEFAULT 'occasionnel',
+        visit_count INTEGER DEFAULT 0,
+        total_spent DECIMAL(10,2) DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
 
-    // Vérifier et insérer des services par défaut
-    const serviceCount = await db.getAsync('SELECT COUNT(*) as count FROM services');
-    
-    if (serviceCount.count === 0) {
-      const services = [
-        { name: 'Impression N&B', price: 100, category: 'impression', description: 'Impression noir et blanc par page' },
-        { name: 'Impression Couleur', price: 200, category: 'impression', description: 'Impression couleur par page' },
-        { name: 'Scan', price: 150, category: 'scan', description: 'Numérisation de document' },
-        { name: 'Clé USB 8GB', price: 5000, category: 'consommable', description: 'Clé USB 8 Go' },
-        { name: 'Clé USB 16GB', price: 8000, category: 'consommable', description: 'Clé USB 16 Go' },
-        { name: 'CD Vierge', price: 500, category: 'consommable', description: 'CD-R vierge' },
-        { name: 'Boisson fraîche', price: 1000, category: 'boisson', description: 'Coca, Fanta, Sprite' },
-        { name: 'Eau minérale', price: 500, category: 'boisson', description: 'Eau 50cl' },
-        { name: 'Snack', price: 1500, category: 'nourriture', description: 'Chips, biscuits' },
-      ];
+      // Table des sessions
+      `CREATE TABLE IF NOT EXISTS sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        station_id INTEGER NOT NULL,
+        client_id INTEGER,
+        start_time DATETIME NOT NULL,
+        end_time DATETIME,
+        duration_minutes INTEGER,
+        base_price DECIMAL(10,2) DEFAULT 0,
+        services_price DECIMAL(10,2) DEFAULT 0,
+        total_price DECIMAL(10,2) DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'active',
+        payment_status VARCHAR(20) DEFAULT 'pending',
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (station_id) REFERENCES stations(id),
+        FOREIGN KEY (client_id) REFERENCES clients(id)
+      )`,
 
-      for (const service of services) {
-        await db.runAsync(
-          'INSERT INTO services (name, price, category, description) VALUES (?, ?, ?, ?)',
-          [service.name, service.price, service.category, service.description]
-        );
-      }
-      console.log('✅ Services par défaut créés');
-    }
+      // Table des services additionnels
+      `CREATE TABLE IF NOT EXISTS services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        price DECIMAL(10,2) NOT NULL,
+        category VARCHAR(50),
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
 
-    // Créer un utilisateur admin par défaut
-    const userCount = await db.getAsync('SELECT COUNT(*) as count FROM users');
-    
-    if (userCount.count === 0) {
-      const password = await bcrypt.hash('admin123', 10);
-      await db.runAsync(
-        'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
-        ['admin', password, 'Administrateur', 'admin']
-      );
-      console.log('👤 Utilisateur admin créé');
-      console.log('   Username: admin');
-      console.log('   Password: admin123');
-    }
+      // Table des services par session
+      `CREATE TABLE IF NOT EXISTS session_services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id INTEGER NOT NULL,
+        service_id INTEGER NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        unit_price DECIMAL(10,2) NOT NULL,
+        total_price DECIMAL(10,2) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES sessions(id),
+        FOREIGN KEY (service_id) REFERENCES services(id)
+      )`,
 
-    console.log('✅ Base de données initialisée avec succès !');
-  }, 500);
+      // Table des utilisateurs
+      `CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        name VARCHAR(100),
+        role VARCHAR(20) DEFAULT 'admin',
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`
+    ];
+
+    db.serialize(() => {
+      tables.forEach(tableSQL => {
+        db.run(tableSQL, (err) => {
+          if (err) {
+            console.error('❌ Erreur création table:', err.message);
+          }
+        });
+      });
+      console.log('✅ Tables créées avec succès');
+      resolve();
+    });
+  });
 };
 
-// Exécuter si appelé directement
-if (require.main === module) {
-  initDatabase();
-}
+// Fonction pour ajouter les colonnes de ping aux tables existantes
+const addPingColumnsIfNeeded = async () => {
+  try {
+    const tableInfo = await db.allAsync('PRAGMA table_info(stations)');
+    const columnNames = tableInfo.map(col => col.name);
 
-module.exports = { initDatabase };
+    const columnsToAdd = [
+      {
+        name: 'connection_status',
+        sql: "ALTER TABLE stations ADD COLUMN connection_status VARCHAR(20) DEFAULT 'unknown'"
+      },
+      {
+        name: 'last_ping_time',
+        sql: 'ALTER TABLE stations ADD COLUMN last_ping_time DATETIME'
+      },
+      {
+        name: 'response_time',
+        sql: 'ALTER TABLE stations ADD COLUMN response_time INTEGER'
+      }
+    ];
+
+    for (const column of columnsToAdd) {
+      if (!columnNames.includes(column.name)) {
+        await db.runAsync(column.sql);
+        console.log(`✅ Colonne ${column.name} ajoutée avec succès`);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'ajout des colonnes de ping:', error.message);
+    return false;
+  }
+};
+
+// Fonction d'initialisation complète
+const initDatabase = async () => {
+  try {
+    await createTables();
+    await addPingColumnsIfNeeded();
+    console.log('✅ Base de données initialisée avec succès');
+  } catch (error) {
+    console.error('❌ Erreur initialisation base de données:', error);
+  }
+};
+
+module.exports = { createTables, addPingColumnsIfNeeded, initDatabase };

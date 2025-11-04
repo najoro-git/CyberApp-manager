@@ -72,10 +72,10 @@ export const servicesAPI = {
 
 // Services API - Statistiques/Reports
 export const statsAPI = {
-  getGlobal: (params) => api.get('/reports/stats', { params }),
-  getDaily: (date) => api.get(`/reports/daily${date ? `?date=${date}` : ''}`),
-  getMonthly: (year, month) => api.get(`/reports/monthly?year=${year}&month=${month}`),
-  getCustom: (params) => api.get('/reports/custom', { params }),
+  getGlobal: (params) => api.get('/stats/stats', { params }),
+  getDaily: (date) => api.get(`/stats/daily${date ? `?date=${date}` : ''}`),
+  getMonthly: (year, month) => api.get(`/stats/monthly?year=${year}&month=${month}`),
+  getCustom: (params) => api.get('/stats/custom', { params }),
 };
 
 export default api;

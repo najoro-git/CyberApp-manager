@@ -27,11 +27,12 @@ app.use(morgan('dev'));
 initDatabase();
 
 // Routes
-app.use('/api/postes', require('./routes/stations'));
+app.use('/api/stations', require('./routes/stations')); // Changé de postes à stations pour cohérence
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/services', require('./routes/services'));
-app.use('/api/stats', require('./routes/reports'));
+app.use('/api/reports', require('./routes/reports')); // Changé de stats à reports
+app.use('/api/ping', require('./routes/ping'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
