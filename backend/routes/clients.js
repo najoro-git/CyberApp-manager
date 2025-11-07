@@ -190,30 +190,37 @@ router.put('/:id', async (req, res) => {
 // DELETE - Supprimer un client
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await db.runAsync(
-      'DELETE FROM clients WHERE id = ?',
-      [req.params.id]
-    );
+    const clientId = req.params.id;
+
+    // 🔹 Supprimer toutes les sessions liées à ce client
+    await db.runAsync('DELETE FROM sessions WHERE client_id = ?', [clientId]);
+
+    // 🔹 Supprimer le client ensuite
+    const result = await db.runAsync('DELETE FROM clients WHERE id = ?', [clientId]);
 
     if (result.changes === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Client not found'
+        message: 'Client non trouvé'
       });
     }
 
     res.json({
       success: true,
-      message: 'Client deleted successfully'
+      message: 'Client et ses sessions supprimés avec succès'
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting client',
-      error: error.message
-    });
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT') {
+      console.error('⚠️ Contrainte étrangère : impossible de supprimer ce client lié à d’autres données.');
+      return res.status(400).json({
+        success: false,
+        message: 'Impossible : ce client est encore lié à d’autres données.'
+      });
+    }
+
   }
 });
+
 
 // GET - Statistiques d'un client
 router.get('/:id/stats', async (req, res) => {

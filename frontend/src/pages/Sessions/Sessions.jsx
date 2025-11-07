@@ -14,7 +14,8 @@ function Sessions() {
   const [formData, setFormData] = useState({
     station_id: '',
     client_id: '',
-    notes: ''
+    notes: '',
+      duration: '' 
   });
   const [serviceFormData, setServiceFormData] = useState({
     service_id: '',
@@ -267,6 +268,21 @@ function Sessions() {
                 rows="2"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Durée estimée (en minutes) *
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-cyan-500/50"
+                placeholder="Ex : 60 pour 1 heure"
+              />
+            </div>
+
 
             <div className="flex gap-3 pt-4">
               <button

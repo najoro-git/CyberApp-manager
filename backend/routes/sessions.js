@@ -151,9 +151,9 @@ router.post('/', async (req, res) => {
 
     // Créer la session
     const result = await db.runAsync(
-      `INSERT INTO sessions (station_id, client_id, start_time, status, notes)
-       VALUES (?, ?, datetime('now'), 'active', ?)`,
-      [station_id, client_id, notes]
+      `INSERT INTO sessions (station_id, client_id, start_time, status, notes , duration_minutes)
+       VALUES (?, ?, datetime('now'), 'active', ? , ?)`,
+      [station_id, client_id, notes, duration ]
     );
 
     // Mettre à jour le statut du poste
